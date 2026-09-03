@@ -5,21 +5,6 @@ import {
   DeepPartial,
 } from 'lightweight-charts';
 
-export const navItems = [
-  {
-    label: 'Home',
-    href: '/',
-  },
-  {
-    label: 'Search',
-    href: '/',
-  },
-  {
-    label: 'All Coins',
-    href: '/coins',
-  },
-];
-
 const CHART_COLORS = {
   background: '#0b1116',
   text: '#8f9fb1',
@@ -91,15 +76,12 @@ export const getChartConfig = (
   },
 });
 
-export const PERIOD_CONFIG: Record<
-  Period,
-  { days: number | string; interval?: 'hourly' | 'daily' }
-> = {
-  daily: { days: 1, interval: 'hourly' },
-  weekly: { days: 7, interval: 'hourly' },
-  monthly: { days: 30, interval: 'hourly' },
-  '3months': { days: 90, interval: 'daily' },
-  '6months': { days: 180, interval: 'daily' },
+export const PERIOD_CONFIG: Record<Period, { days: number | string }> = {
+  daily: { days: 1 },
+  weekly: { days: 7 },
+  monthly: { days: 30 },
+  '3months': { days: 90 },
+  '6months': { days: 180 },
   yearly: { days: 365 },
   max: { days: 'max' },
 };
@@ -112,9 +94,4 @@ export const PERIOD_BUTTONS: { value: Period; label: string }[] = [
   { value: '6months', label: '6M' },
   { value: 'yearly', label: '1Y' },
   { value: 'max', label: 'Max' },
-];
-
-export const LIVE_INTERVAL_BUTTONS: { value: '1s' | '1m'; label: string }[] = [
-  { value: '1s', label: '1s' },
-  { value: '1m', label: '1m' },
 ];

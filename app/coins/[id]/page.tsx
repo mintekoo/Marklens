@@ -1,33 +1,45 @@
 import React from 'react';
-import { fetcher, getPools } from '@/lib/coingecko.actions';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+
 import LiveDataWrapper from '@/components/LiveDataWrapper';
 import Converter from '@/components/Converter';
+import {
+  CoinGeckoError,
+  getCoinDetails,
+  getCoinOHLC,
+  mapTickersToTrades,
+} from '@/lib/coingecko/client';
+import type { CoinDetailsData, OHLCData } from '@/lib/coingecko/types';
+import { formatCurrency } from '@/lib/utils';
+
+interface NextPageProps {
+  params: Promise<{ [key: string]: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 const Page = async ({ params }: NextPageProps) => {
   const { id } = await params;
 
-  const [coinData, coinOHLCData] = await Promise.all([
-    fetcher<CoinDetailsData>(`/coins/${id}`, {
-      dex_pair_format: 'contract_address',
-    }),
-    fetcher<OHLCData>(`/coins/${id}/ohlc`, {
-      vs_currency: 'usd',
-      days: 1,
-      interval: 'hourly',
-      precision: 'full',
-    }),
-  ]);
+  let coinData: CoinDetailsData;
+  let coinOHLCData: OHLCData[] = [];
 
-  const platform = coinData.asset_platform_id
-    ? coinData.detail_platforms?.[coinData.asset_platform_id]
-    : null;
-  const network = platform?.geckoterminal_url.split('/')[3] || null;
-  const contractAddress = platform?.contract_address || null;
+  try {
+    [coinData, coinOHLCData] = await Promise.all([getCoinDetails(id), getCoinOHLC(id, 1)]);
+  } catch (error) {
+    const message = error instanceof CoinGeckoError ? error.message : 'Unable to load coin details';
 
-  const pool = await getPools(id, network, contractAddress);
+    return (
+      <main id="coin-details-page" className="main-container py-10">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-red-200">
+          <h4 className="mb-2 font-semibold">Unable to load coin</h4>
+          <p>{message}</p>
+        </div>
+      </main>
+    );
+  }
+
+  const initialTrades = mapTickersToTrades(coinData.tickers ?? []);
 
   const coinDetails = [
     {
@@ -36,7 +48,7 @@ const Page = async ({ params }: NextPageProps) => {
     },
     {
       label: 'Market Cap Rank',
-      value: `# ${coinData.market_cap_rank}`,
+      value: coinData.market_cap_rank ? `# ${coinData.market_cap_rank}` : '—',
     },
     {
       label: 'Total Volume',
@@ -57,7 +69,7 @@ const Page = async ({ params }: NextPageProps) => {
     {
       label: 'Community',
       value: '-',
-      link: coinData.links.subreddit_url,
+      link: coinData.links.subreddit_url ?? undefined,
       linkText: 'Community',
     },
   ];
@@ -65,9 +77,12 @@ const Page = async ({ params }: NextPageProps) => {
   return (
     <main id="coin-details-page">
       <section className="primary">
-        <LiveDataWrapper coinId={id} poolId={pool.id} coin={coinData} coinOHLCData={coinOHLCData}>
-          <h4>Exchange Listings</h4>
-        </LiveDataWrapper>
+        <LiveDataWrapper
+          coinId={id}
+          coin={coinData}
+          coinOHLCData={coinOHLCData}
+          initialTrades={initialTrades}
+        />
       </section>
 
       <section className="secondary">
@@ -81,8 +96,8 @@ const Page = async ({ params }: NextPageProps) => {
           <h4>Coin Details</h4>
 
           <ul className="details-grid">
-            {coinDetails.map(({ label, value, link, linkText }, index) => (
-              <li key={index}>
+            {coinDetails.map(({ label, value, link, linkText }) => (
+              <li key={label}>
                 <p className={label}>{label}</p>
 
                 {link ? (
@@ -103,4 +118,5 @@ const Page = async ({ params }: NextPageProps) => {
     </main>
   );
 };
+
 export default Page;

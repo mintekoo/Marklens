@@ -1,10 +1,16 @@
-import { fetcher } from '@/lib/coingecko.actions';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { cn, formatPercentage, formatCurrency } from '@/lib/utils';
-import DataTable from '@/components/DataTable';
 import CoinsPagination from '@/components/CoinsPagination';
+import DataTable from '@/components/DataTable';
+import { CoinGeckoError, getCoinMarkets } from '@/lib/coingecko/client';
+import type { CoinMarketData } from '@/lib/coingecko/types';
+import { cn, formatCurrency, formatPercentage } from '@/lib/utils';
+
+interface NextPageProps {
+  params: Promise<{ [key: string]: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 const Coins = async ({ searchParams }: NextPageProps) => {
   const { page } = await searchParams;
@@ -12,14 +18,31 @@ const Coins = async ({ searchParams }: NextPageProps) => {
   const currentPage = Number(page) || 1;
   const perPage = 10;
 
-  const coinsData = await fetcher<CoinMarketData[]>('/coins/markets', {
-    vs_currency: 'usd',
-    order: 'market_cap_desc',
-    per_page: perPage,
-    page: currentPage,
-    sparkline: 'false',
-    price_change_percentage: '24h',
-  });
+  let coinsData: CoinMarketData[] = [];
+
+  try {
+    coinsData = await getCoinMarkets({
+      vs_currency: 'usd',
+      order: 'market_cap_desc',
+      per_page: perPage,
+      page: currentPage,
+      sparkline: false,
+      price_change_percentage: '24h',
+    });
+  } catch (error) {
+    const message = error instanceof CoinGeckoError ? error.message : 'Unable to load market data';
+
+    return (
+      <main id="coins-page">
+        <div className="content">
+          <h4>All Coins</h4>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-red-200">
+            <p>{message}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const columns: DataTableColumn<CoinMarketData>[] = [
     {
@@ -53,7 +76,8 @@ const Coins = async ({ searchParams }: NextPageProps) => {
       header: '24h Change',
       cellClassName: 'change-cell',
       cell: (coin) => {
-        const isTrendingUp = coin.price_change_percentage_24h > 0;
+        const change = coin.price_change_percentage_24h ?? 0;
+        const isTrendingUp = change > 0;
 
         return (
           <span
@@ -63,7 +87,7 @@ const Coins = async ({ searchParams }: NextPageProps) => {
             })}
           >
             {isTrendingUp && '+'}
-            {formatPercentage(coin.price_change_percentage_24h)}
+            {formatPercentage(change)}
           </span>
         );
       },
@@ -76,7 +100,6 @@ const Coins = async ({ searchParams }: NextPageProps) => {
   ];
 
   const hasMorePages = coinsData.length === perPage;
-
   const estimatedTotalPages = currentPage >= 100 ? Math.ceil(currentPage / 100) * 100 + 100 : 100;
 
   return (

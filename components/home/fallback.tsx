@@ -1,6 +1,8 @@
-import React from 'react';
 import DataTable from '@/components/DataTable';
-import { cn } from '@/lib/utils';
+
+interface SkeletonRow {
+  id: number;
+}
 
 export const CoinOverviewFallback = () => {
   return (
@@ -20,7 +22,7 @@ export const CoinOverviewFallback = () => {
 };
 
 export const TrendingCoinsFallback = () => {
-  const columns = [
+  const columns: DataTableColumn<SkeletonRow>[] = [
     {
       header: 'Name',
       cell: () => (
@@ -52,8 +54,8 @@ export const TrendingCoinsFallback = () => {
       <h4>Trending Coins</h4>
       <DataTable
         data={dummyData}
-        columns={columns as any}
-        rowKey={(item: any) => item.id}
+        columns={columns}
+        rowKey={(item) => item.id}
         tableClassName="trending-coins-table"
       />
     </div>
@@ -61,7 +63,7 @@ export const TrendingCoinsFallback = () => {
 };
 
 export const CategoriesFallback = () => {
-  const columns = [
+  const columns: DataTableColumn<SkeletonRow>[] = [
     {
       header: 'Category',
       cellClassName: 'category-cell',
@@ -107,8 +109,8 @@ export const CategoriesFallback = () => {
       <h4>Top Categories</h4>
       <DataTable
         data={dummyData}
-        columns={columns as any}
-        rowKey={(item: any) => item.id}
+        columns={columns}
+        rowKey={(item) => item.id}
         tableClassName="mt-3"
       />
     </div>

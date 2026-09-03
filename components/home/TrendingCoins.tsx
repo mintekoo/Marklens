@@ -1,16 +1,18 @@
-import { fetcher } from '@/lib/coingecko.actions';
-import Link from 'next/link';
 import Image from 'next/image';
-import { cn, formatCurrency, formatPercentage } from '@/lib/utils';
+import Link from 'next/link';
 import { TrendingDown, TrendingUp } from 'lucide-react';
+
 import DataTable from '@/components/DataTable';
-import { TrendingCoinsFallback } from './fallback';
+import { TrendingCoinsFallback } from '@/components/home/fallback';
+import { getTrendingCoins } from '@/lib/coingecko/client';
+import type { TrendingCoin } from '@/lib/coingecko/types';
+import { cn, formatCurrency, formatPercentage } from '@/lib/utils';
 
 const TrendingCoins = async () => {
-  let trendingCoins;
+  let trendingCoins: TrendingCoin[];
 
   try {
-    trendingCoins = await fetcher<{ coins: TrendingCoin[] }>('/search/trending', undefined, 300);
+    trendingCoins = await getTrendingCoins(300);
   } catch (error) {
     console.error('Error fetching trending coins:', error);
     return <TrendingCoinsFallback />;
@@ -36,12 +38,13 @@ const TrendingCoins = async () => {
       cellClassName: 'change-cell',
       cell: (coin) => {
         const item = coin.item;
-        const isTrendingUp = item.data.price_change_percentage_24h.usd > 0;
+        const change = item.data.price_change_percentage_24h.usd;
+        const isTrendingUp = change > 0;
 
         return (
           <div className={cn('price-change', isTrendingUp ? 'text-green-500' : 'text-red-500')}>
             <p className="flex items-center">
-              {formatPercentage(item.data.price_change_percentage_24h.usd)}
+              {formatPercentage(change)}
               {isTrendingUp ? (
                 <TrendingUp width={16} height={16} />
               ) : (
@@ -64,7 +67,7 @@ const TrendingCoins = async () => {
       <h4>Trending Coins</h4>
 
       <DataTable
-        data={trendingCoins.coins.slice(0, 6) || []}
+        data={trendingCoins.slice(0, 6)}
         columns={columns}
         rowKey={(coin) => coin.item.id}
         tableClassName="trending-coins-table"

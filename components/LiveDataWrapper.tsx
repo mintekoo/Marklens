@@ -2,15 +2,21 @@
 
 import { Separator } from '@/components/ui/separator';
 import CandlestickChart from '@/components/CandlestickChart';
-import { useCoinGeckoWebSocket } from '@/hooks/useCoinGeckoWebSocket';
 import DataTable from '@/components/DataTable';
-import { formatCurrency, timeAgo } from '@/lib/utils';
-import { useState } from 'react';
 import CoinHeader from '@/components/CoinHeader';
+import { useCoinLiveData } from '@/hooks/useCoinLiveData';
+import type { CoinDetailsData, OHLCData, Trade } from '@/lib/coingecko/types';
+import { formatCurrency, timeAgo } from '@/lib/utils';
 
-const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveDataProps) => {
-  const [liveInterval, setLiveInterval] = useState<'1s' | '1m'>('1s');
-  const { trades, ohlcv, price } = useCoinGeckoWebSocket({ coinId, poolId, liveInterval });
+interface LiveDataProps {
+  coinId: string;
+  coin: CoinDetailsData;
+  coinOHLCData?: OHLCData[];
+  initialTrades?: Trade[];
+}
+
+const LiveDataWrapper = ({ coinId, coin, coinOHLCData, initialTrades = [] }: LiveDataProps) => {
+  const { trades, price } = useCoinLiveData({ coinId, initialTrades });
 
   const tradeColumns: DataTableColumn<Trade>[] = [
     {
@@ -31,11 +37,14 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
     {
       header: 'Buy/Sell',
       cellClassName: 'type-cell',
-      cell: (trade) => (
-        <span className={trade.type === 'b' ? 'text-green-500' : 'text-red-500'}>
-          {trade.type === 'b' ? 'Buy' : 'Sell'}
-        </span>
-      ),
+      cell: (trade) =>
+        trade.type ? (
+          <span className={trade.type === 'b' ? 'text-green-500' : 'text-red-500'}>
+            {trade.type === 'b' ? 'Buy' : 'Sell'}
+          </span>
+        ) : (
+          <span className="text-purple-100/50">—</span>
+        ),
     },
     {
       header: 'Time',
@@ -54,7 +63,7 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
           price?.change24h ?? coin.market_data.price_change_percentage_24h_in_currency.usd
         }
         priceChangePercentage30d={coin.market_data.price_change_percentage_30d_in_currency.usd}
-        priceChange24h={coin.market_data.price_change_24h_in_currency.usd}
+        priceChange24h={price?.priceChange24h ?? coin.market_data.price_change_24h_in_currency.usd}
       />
       <Separator className="divider" />
 
@@ -62,11 +71,9 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
         <CandlestickChart
           coinId={coinId}
           data={coinOHLCData}
-          liveOhlcv={ohlcv}
           mode="live"
           initialPeriod="daily"
-          liveInterval={liveInterval}
-          setLiveInterval={setLiveInterval}
+          pollIntervalMs={45_000}
         >
           <h4>Trend Overview</h4>
         </CandlestickChart>
@@ -74,18 +81,16 @@ const LiveDataWrapper = ({ children, coinId, poolId, coin, coinOHLCData }: LiveD
 
       <Separator className="divider" />
 
-      {tradeColumns && (
-        <div className="trades">
-          <h4>Recent Trades</h4>
+      <div className="trades">
+        <h4>Recent Market Activity</h4>
 
-          <DataTable
-            columns={tradeColumns}
-            data={trades}
-            rowKey={(_, index) => index}
-            tableClassName="trades-table"
-          />
-        </div>
-      )}
+        <DataTable
+          columns={tradeColumns}
+          data={trades}
+          rowKey={(_, index) => index}
+          tableClassName="trades-table"
+        />
+      </div>
     </section>
   );
 };

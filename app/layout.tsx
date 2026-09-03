@@ -14,8 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CoinPulse',
-  description: 'Crypto Screener App with a built-in High-Frequency Terminal & Dashboard',
+  title: {
+    default: 'Marklens',
+    template: '%s · Marklens',
+  },
+  description:
+    'Cryptocurrency market dashboard with live prices, OHLC charts, trending assets, and coin details powered by the CoinGecko Demo REST API.',
+  applicationName: 'Marklens',
+  openGraph: {
+    title: 'Marklens',
+    description:
+      'Cryptocurrency market dashboard with live prices, OHLC charts, trending assets, and coin details.',
+    type: 'website',
+    siteName: 'Marklens',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Marklens',
+    description:
+      'Cryptocurrency market dashboard with live prices, OHLC charts, trending assets, and coin details.',
+  },
 };
 
 export default function RootLayout({
